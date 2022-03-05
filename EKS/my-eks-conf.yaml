@@ -1,0 +1,113 @@
+---
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+metadata:
+  name: my-eks-201 
+  region: us-east-1
+  version: "1.20" 
+vpc: # Refer: https://github.com/weaveworks/eksctl/blob/main/examples/04-existing-vpc.yaml
+  id: "vpc-0df7fa8189b6d80c3"
+  subnets:
+    public:
+      my-public-201-a:
+        id: "subnet-08874b5733fe74c6f"
+        az: "us-east-1a"
+      my-public-201-b:
+        id: "subnet-05a365dcc35001a27"
+        az: "us-east-1b"
+    private:
+      my-private-201-a:
+        id: "subnet-08874b5733fe74c6f"
+        az: "us-east-1a"
+      my-private-201-b:
+        id: "subnet-05a365dcc35001a27"
+        az: "us-east-1b"
+  clusterEndpoints:
+    publicAccess:  true
+    privateAccess: true
+  nat:
+    gateway: Disable 
+
+iam: 
+  withOIDC: true
+  serviceAccounts: 
+  - metadata:
+      name: aws-load-balancer-controller
+      namespace: demo
+    wellKnownPolicies:
+      awsLoadBalancerController: true
+  - metadata:
+      name: ebs-csi-controller-sa
+      namespace: demo
+    wellKnownPolicies:
+      ebsCSIController: true
+  - metadata:
+      name: efs-csi-controller-sa
+      namespace: demo
+    wellKnownPolicies:
+      efsCSIController: true
+  - metadata:
+      name: external-dns
+      namespace: demo
+    wellKnownPolicies:
+      externalDNS: true
+  - metadata:
+      name: cert-manager
+      namespace: cert-manager
+    wellKnownPolicies:
+      certManager: true
+  - metadata:
+      name: cluster-autoscaler
+      namespace: demo
+      labels: {aws-usage: "cluster-ops"}
+    wellKnownPolicies:
+      autoScaler: true
+
+nodeGroups: 
+  - name: pvt-201-a-1
+    labels: { role: workers }
+    tags:
+      k8s.io/cluster-autoscaler/enabled: "true" 
+      k8s.io/cluster-autoscaler/my-eks-201: "shared" 
+    instancesDistribution:
+      instanceTypes:
+        - t2.medium
+    desiredCapacity: 1
+    minSize: 0
+    maxSize: 3
+    privateNetworking: true # include only in private subnet
+    subnets:
+      - subnet-0c7b2b125fed09232
+      - subnet-0bcbd93955ff4657d
+  - name: pub-201-a-1
+    labels: { role: workers }
+    tags:
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/my-eks-201: "shared"
+    instancesDistribution:
+      instanceTypes:
+        - t2.medium
+    desiredCapacity: 1
+    minSize: 0
+    maxSize: 1
+    subnets:
+      - subnet-0d376de740af9a72a
+      - subnet-05a365dcc35001a27
+  - name: pvt-201-a-2
+    labels: { role: workers }
+    tags:
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/my-eks-201: "shared"
+    instancesDistribution:
+      instanceTypes:
+        - t2.medium
+    desiredCapacity: 1
+    minSize: 0
+    maxSize: 5
+    subnets:
+      - subnet-0c7b2b125fed09232
+      - subnet-0bcbd93955ff4657d
+    taints:
+      - key: "special"
+        value: "true"
+        effect: "NoSchedule"

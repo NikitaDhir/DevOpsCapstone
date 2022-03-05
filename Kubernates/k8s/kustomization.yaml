@@ -1,0 +1,4 @@
+# Listing of the application deployment related files 
+resources:
+  - upgloadme-deployment.yaml
+  - ingress.yaml
